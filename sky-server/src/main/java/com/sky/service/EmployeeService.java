@@ -23,4 +23,8 @@ public interface EmployeeService {
     Employee login(EmployeeLoginDTO employeeLoginDTO);
 
     PageResult pageQuery(EmployeePageQueryDTO employeePageQueryDTO);
+
+    Employee getById(Long id);
+
+    void update(EmployeeDTO employeeDTO);
 }
