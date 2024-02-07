@@ -7,6 +7,8 @@ import com.sky.entity.Employee;
 import com.sky.result.PageResult;
 
 public interface EmployeeService {
+     void startOrStop(Integer status, Long id);
+
     /**
      * 新增员工
      * @param employeeDTO

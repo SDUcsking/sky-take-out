@@ -23,4 +23,6 @@ public interface EmployeeMapper {
             "values" +
             "(#{name},#{username},#{password},#{phone},#{sex},#{idNumber},#{status},#{createTime},#{updateUser},#{updateTime},#{createUser})")
     void insert(Employee employee);
+
+    void update(Employee employee);
 }
