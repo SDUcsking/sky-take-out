@@ -115,4 +115,9 @@ public class DishServiceImpl implements DishService {
     public void startOrStop(Integer status, Long id) {
         dishMapper.startOrStop(status,id);
     }
+
+    @Override
+    public List<Dish> list(Long categoryId) {
+        return dishMapper.list(categoryId);
+    }
 }
