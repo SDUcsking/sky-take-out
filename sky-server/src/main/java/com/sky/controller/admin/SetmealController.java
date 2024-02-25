@@ -6,6 +6,7 @@ import com.sky.mapper.SetmealMapper;
 import com.sky.result.PageResult;
 import com.sky.result.Result;
 import com.sky.service.SetmealService;
+import com.sky.vo.SetmealVO;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
@@ -51,6 +52,20 @@ public class SetmealController {
     public Result deleteBatch(@RequestParam List<Long>ids){//接受param码中的多值参数使用@RequestParam如list,映射所有参数map
         log.info("批量删除,{}",ids);
         setmealService.deleteBatch(ids);
+        return Result.success();
+    }
+    @GetMapping("/{id}")
+    @ApiOperation("根据 id查询套餐")
+    public Result<SetmealVO> getById(@PathVariable Long id){
+        log.info("根据id查询套餐,{}",id);
+        SetmealVO setmealVO=setmealService.getById(id);
+        return Result.success(setmealVO);
+    }
+    @PutMapping
+    @ApiOperation("修改套餐")
+    public Result update(@RequestBody SetmealDTO setmealDTO){
+        log.info("修改套餐,{}",setmealDTO);
+        setmealService.update(setmealDTO);
         return Result.success();
     }
 }
