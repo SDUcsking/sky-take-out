@@ -16,3 +16,6 @@ sky:
     access-key-secret: J5HcuI3hfva7s6HRfnhnCGlAYknL0c
     endpoint: oss-cn-beijing.aliyuncs.com
     bucket-name: sky-take-out-hbw
+  wechat:
+    appid: wxf05c16bdb877e4bd
+    secret: dd2256b5598ce40853e76441cd303e48
