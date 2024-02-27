@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.temporal.Temporal;
 import java.util.List;
+import java.util.Set;
 
 /**
  * ClassName: DishController
@@ -34,11 +35,15 @@ import java.util.List;
 public class DishController {
     @Autowired
     DishService dishService;
+    @Autowired
+    RedisTemplate redisTemplate;
 
     @PostMapping
     @ApiOperation("新增菜品")
     public Result save(@RequestBody DishDTO dishDTO){
         log.info("新增菜品,{}",dishDTO);
+        String key="dish_"+dishDTO.getCategoryId();
+        cleanCache(key);
         dishService.saveWithFlavor(dishDTO);
         return Result.success();
     }
@@ -54,7 +59,9 @@ public class DishController {
     @ApiOperation("删除菜品")
     public Result delete(@RequestParam List<Long>ids){
         log.info("删除菜品,{}",ids);
+        cleanCache("dish_*");
         dishService.deleteBatch(ids);
+
         return Result.success();
     }
     @GetMapping("{id}")
@@ -69,6 +76,7 @@ public class DishController {
     public Result update(@RequestBody DishDTO dishDTO){
         log.info("修改菜品,{}",dishDTO);
         dishService.updateWithFlavor(dishDTO);
+        cleanCache("dish_*");
         return Result.success();
     }
     @PostMapping("status/{status}")
@@ -76,6 +84,8 @@ public class DishController {
     public Result startOrStop(@PathVariable Integer status,Long id){
         log.info("菜品棋手停售,id:{},修改后状态:{}",id,status);
         dishService.startOrStop(status,id);
+        cleanCache("dish_*");
+
         return Result.success();
     }
 
@@ -88,5 +98,9 @@ public class DishController {
         List<Dish> dishes=dishService.list(categoryId);
 
         return Result.success(dishes);
+    }
+    private void cleanCache(String pattern){
+        Set keys=redisTemplate.keys(pattern);
+        redisTemplate.delete(keys);
     }
 }
