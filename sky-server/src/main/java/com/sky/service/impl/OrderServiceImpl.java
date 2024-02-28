@@ -1,7 +1,10 @@
 package com.sky.service.impl;
 
+import com.github.pagehelper.Page;
+import com.github.pagehelper.PageHelper;
 import com.sky.constant.MessageConstant;
 import com.sky.context.BaseContext;
+import com.sky.dto.OrdersPageQueryDTO;
 import com.sky.dto.OrdersPaymentDTO;
 import com.sky.dto.OrdersSubmitDTO;
 import com.sky.entity.AddressBook;
@@ -15,9 +18,11 @@ import com.sky.mapper.AddressBookMapper;
 import com.sky.mapper.OrderDetailMapper;
 import com.sky.mapper.OrderMapper;
 import com.sky.mapper.ShoppingCartMapper;
+import com.sky.result.PageResult;
 import com.sky.service.OrderService;
 import com.sky.vo.OrderPaymentVO;
 import com.sky.vo.OrderSubmitVO;
+import com.sky.vo.OrderVO;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -50,41 +55,64 @@ public class OrderServiceImpl implements OrderService {
     ShoppingCartMapper shoppingCartMapper;
     @Override
     public OrderSubmitVO submitOrder(OrdersSubmitDTO ordersSubmitDTO) {
+        //1. 处理各种业务异常（地址簿为空、购物车数据为空）
         AddressBook addressBook = addressBookMapper.getById(ordersSubmitDTO.getAddressBookId());
-        if(addressBook==null){
+        if(addressBook == null){
+            //抛出业务异常
             throw new AddressBookBusinessException(MessageConstant.ADDRESS_BOOK_IS_NULL);
         }
-        ShoppingCart shoppingCart=new ShoppingCart();
-        Long userId=BaseContext.getCurrentId();
+
+        //检查用户的收货地址是否超出配送范围
+        //checkOutOfRange(addressBook.getCityName() + addressBook.getDistrictName() + addressBook.getDetail());
+
+        //查询当前用户的购物车数据
+        Long userId = BaseContext.getCurrentId();
+
+        ShoppingCart shoppingCart = new ShoppingCart();
         shoppingCart.setUserId(userId);
         List<ShoppingCart> shoppingCartList = shoppingCartMapper.list(shoppingCart);
-        if(shoppingCartList==null||shoppingCartList.size()==0){
+
+        if(shoppingCartList == null || shoppingCartList.size() == 0){
+            //抛出业务异常
             throw new ShoppingCartBusinessException(MessageConstant.SHOPPING_CART_IS_NULL);
         }
-        Orders orders=new Orders();
-        BeanUtils.copyProperties(ordersSubmitDTO,orders);
+
+        //2. 向订单表插入1条数据
+        Orders orders = new Orders();
+        BeanUtils.copyProperties(ordersSubmitDTO, orders);
         orders.setOrderTime(LocalDateTime.now());
         orders.setPayStatus(Orders.UN_PAID);
         orders.setStatus(Orders.PENDING_PAYMENT);
         orders.setNumber(String.valueOf(System.currentTimeMillis()));
+        orders.setAddress(addressBook.getDetail());
+        orders.setPhone(addressBook.getPhone());
+        orders.setConsignee(addressBook.getConsignee());
         orders.setUserId(userId);
-        orderMapper.insert(orders);
-        List<OrderDetail>orderDetails=new ArrayList<>();
-        for (ShoppingCart cart : shoppingCartList) {
-            OrderDetail orderDetail = new OrderDetail();
-            BeanUtils.copyProperties(cart,orderDetail);
-            orderDetail.setOrderId(orders.getId());
-            orderDetails.add(orderDetail);
 
+        orderMapper.insert(orders);
+
+        List<OrderDetail> orderDetailList = new ArrayList<>();
+        //3. 向订单明细表插入n条数据
+        for (ShoppingCart cart : shoppingCartList) {
+            OrderDetail orderDetail = new OrderDetail();//订单明细
+            BeanUtils.copyProperties(cart, orderDetail);
+            orderDetail.setOrderId(orders.getId());//设置当前订单明细关联的订单id
+            orderDetailList.add(orderDetail);
         }
-        orderDetailMapper.insertBatch(orderDetails);
+
+        orderDetailMapper.insertBatch(orderDetailList);
+
+        //4. 清空当前用户的购物车数据
         shoppingCartMapper.deleteByUserId(userId);
-        OrderSubmitVO orderSubmitVO=OrderSubmitVO.builder()
+
+        //5. 封装VO返回结果
+        OrderSubmitVO orderSubmitVO = OrderSubmitVO.builder()
                 .id(orders.getId())
                 .orderTime(orders.getOrderTime())
                 .orderNumber(orders.getNumber())
                 .orderAmount(orders.getAmount())
                 .build();
+
         return orderSubmitVO;
     }
 
@@ -135,6 +163,59 @@ public class OrderServiceImpl implements OrderService {
                 .checkoutTime(LocalDateTime.now())
                 .build();
 
+        orderMapper.update(orders);
+    }
+
+    @Override
+    public PageResult pageQueryForUser(int pageNum, Integer pagesize, Integer status) {
+        PageHelper.startPage(pageNum,pagesize);
+        OrdersPageQueryDTO ordersPageQueryDTO = new OrdersPageQueryDTO();
+        ordersPageQueryDTO.setUserId(BaseContext.getCurrentId());
+        ordersPageQueryDTO.setStatus(status);
+        Page<Orders> page=orderMapper.pageQuery(ordersPageQueryDTO);
+        List<OrderVO>list=new ArrayList<>();
+        if(page!=null&&page.size()>0){
+            for (Orders orders : page) {
+                Long orderId=orders.getId();
+                OrderVO orderVO = new OrderVO();
+                BeanUtils.copyProperties(orders,orderVO);
+                List<OrderDetail>orderDetails=orderDetailMapper.getByOrderId(orderId);
+                orderVO.setOrderDetailList(orderDetails);
+                list.add(orderVO);
+
+
+            }
+        }
+        return new PageResult(page.getTotal(),list);
+
+    }
+
+    @Override
+    public OrderVO details(Long id) {
+        Orders orders=orderMapper.getById(id);
+        List<OrderDetail>orderDetails=orderDetailMapper.getByOrderId(orders.getId());
+        OrderVO orderVO=new OrderVO();
+        BeanUtils.copyProperties(orders,orderVO);
+        orderVO.setOrderDetailList(orderDetails);
+        return orderVO;
+
+    }
+
+    @Override
+    public void userCancelById(Long id) {
+        Orders ordersDB=orderMapper.getById(id);
+        if(ordersDB==null){
+            throw new OrderBusinessException(MessageConstant.ORDER_NOT_FOUND);
+
+        }
+        Orders orders=new Orders();
+        orders.setId(ordersDB.getId());
+        if(ordersDB.getStatus().equals(Orders.TO_BE_CONFIRMED)){
+            orders.setPayStatus(Orders.REFUND);
+        }
+        orders.setStatus(Orders.CANCELLED);
+        orders.setCancelReason("用户取消");
+        orders.setCancelTime(LocalDateTime.now());
         orderMapper.update(orders);
     }
 }
