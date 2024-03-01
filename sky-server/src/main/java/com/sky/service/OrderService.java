@@ -40,4 +40,6 @@ public interface OrderService {
     void delivery(Long id);
 
     void complete(Long id);
+
+    Long getIdByOrderNumber(OrdersPaymentDTO ordersPaymentDTO);
 }

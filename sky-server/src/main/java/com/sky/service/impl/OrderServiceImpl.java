@@ -387,4 +387,9 @@ public class OrderServiceImpl implements OrderService {
 
         orderMapper.update(orders);
     }
+
+    @Override
+    public Long getIdByOrderNumber(OrdersPaymentDTO ordersPaymentDTO) {
+        return orderMapper.getIdByOrderNumber(ordersPaymentDTO.getOrderNumber());
+    }
 }
