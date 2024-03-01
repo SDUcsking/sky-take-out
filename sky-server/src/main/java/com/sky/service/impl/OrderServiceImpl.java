@@ -27,6 +27,7 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.CollectionUtils;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -238,5 +239,37 @@ public class OrderServiceImpl implements OrderService {
 
         // 将购物车对象批量添加到数据库
         shoppingCartMapper.insertBatch(shoppingCartList);
+    }
+
+    @Override
+    public PageResult conditionSearch(OrdersPageQueryDTO ordersPageQueryDTO) {
+        PageHelper.startPage(ordersPageQueryDTO.getPage(),ordersPageQueryDTO.getPageSize());
+        Page<Orders>page=orderMapper.pageQuery(ordersPageQueryDTO);
+        List<OrderVO>orderVOList=getOrderVOList(page);
+        return new PageResult(page.getTotal(),orderVOList);
+
+    }
+    private List<OrderVO>getOrderVOList(Page<Orders>page){
+        List<OrderVO>orderVOList=new ArrayList<>();
+        List<Orders>list=page.getResult();
+        if(!CollectionUtils.isEmpty(list)){
+            for (Orders orders : list) {
+                OrderVO orderVO=new OrderVO();
+                BeanUtils.copyProperties(orders,orderVO);
+                String orderDishes=getOrderDishesStr(orders);
+                orderVO.setOrderDishes(orderDishes);
+                orderVOList.add(orderVO);
+            }
+        }
+        return orderVOList;
+
+    }
+    private String getOrderDishesStr(Orders orders){
+        List<OrderDetail>orderDetailList=orderDetailMapper.getByOrderId(orders.getId());
+        List<String> orderDishList = orderDetailList.stream().map(x -> {
+            String orderDish = x.getName() + "*" + x.getNumber() + ";";
+            return orderDish;
+        }).collect(Collectors.toList());
+        return String.join(" ",orderDishList);
     }
 }
