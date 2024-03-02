@@ -13,10 +13,10 @@ sky:
     password: 123456
     database: 10
   alioss:
-    access-key-id: LTAI5tN8JjgxTpFSAJj9X6Lg
-    access-key-secret: J5HcuI3hfva7s6HRfnhnCGlAYknL0c
-    endpoint: oss-cn-beijing.aliyuncs.com
-    bucket-name: sky-take-out-hbw
+    access-key-id: 
+    access-key-secret: 
+    endpoint: 
+    bucket-name: 
   wechat:
-    appid: wxf05c16bdb877e4bd
-    secret: dd225
+    appid: 
+    secret: 
