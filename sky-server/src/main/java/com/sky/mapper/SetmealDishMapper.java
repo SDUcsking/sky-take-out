@@ -6,6 +6,7 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Select;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * ClassName: SetmealDishMapper
@@ -29,4 +30,5 @@ public interface SetmealDishMapper {
 
     @Select("select *from setmeal_dish where setmeal_id=#{setmealId}")
     List<SetmealDish> getBySetmealId(Long setmealId);
+
 }
