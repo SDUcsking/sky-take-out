@@ -8,6 +8,7 @@ import org.apache.ibatis.annotations.Select;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 /**
  * ClassName: OrderMapper
@@ -47,4 +48,7 @@ public interface OrderMapper {
 
     @Select("select id from orders where number=#{orderNumber}")
     Long getIdByOrderNumber(String orderNumber);
+
+
+    Double sumByMap(Map map);
 }
