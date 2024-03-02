@@ -1,5 +1,6 @@
 package com.sky.service.impl;
 
+import com.alibaba.fastjson.JSON;
 import com.github.pagehelper.Page;
 import com.github.pagehelper.PageHelper;
 import com.sky.constant.MessageConstant;
@@ -22,6 +23,7 @@ import com.sky.vo.OrderPaymentVO;
 import com.sky.vo.OrderStatisticsVO;
 import com.sky.vo.OrderSubmitVO;
 import com.sky.vo.OrderVO;
+import com.sky.websocket.WebSocketServer;
 import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.weaver.ast.Or;
@@ -36,7 +38,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -60,6 +64,8 @@ public class OrderServiceImpl implements OrderService {
     AddressBookMapper addressBookMapper;
     @Autowired
     ShoppingCartMapper shoppingCartMapper;
+    @Autowired
+    WebSocketServer webSocketServer;
     @Override
     public OrderSubmitVO submitOrder(OrdersSubmitDTO ordersSubmitDTO) {
         //1. 处理各种业务异常（地址簿为空、购物车数据为空）
@@ -391,5 +397,22 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public Long getIdByOrderNumber(OrdersPaymentDTO ordersPaymentDTO) {
         return orderMapper.getIdByOrderNumber(ordersPaymentDTO.getOrderNumber());
+    }
+
+    @Override
+    public void reminder(Long id) {
+        // 根据id查询订单
+        Orders ordersDB = orderMapper.getById(id);
+
+        // 校验订单是否存在，并且状态为4
+        if (ordersDB == null) {
+            throw new OrderBusinessException(MessageConstant.ORDER_STATUS_ERROR);
+        }
+        Map map=new HashMap();
+        map.put("type",2);//1表示来单提醒,2表示客户催单
+        map.put("orderId",id);
+        map.put("content","订单号"+ordersDB.getNumber());
+        webSocketServer.sendToAllClient(JSON.toJSONString(map));
+
     }
 }

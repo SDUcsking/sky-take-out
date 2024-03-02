@@ -42,4 +42,6 @@ public interface OrderService {
     void complete(Long id);
 
     Long getIdByOrderNumber(OrdersPaymentDTO ordersPaymentDTO);
+
+    void reminder(Long id);
 }
